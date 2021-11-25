@@ -1,37 +1,65 @@
 package gee
 
 import (
+	"log"
 	"net/http"
 )
 
 // 定义框架的请求处理函数
 type HandlerFunc func(*Context)
 
+// 路由组
+type RouterGroup struct {
+	prefix      string        // 路由前缀
+	middlewares []HandlerFunc // 中间件组
+	parent      *RouterGroup  // 父级路由组
+	engine      *Engine       // Engine 处理请求引擎
+}
+
 // Engine 处理请求引擎
 type Engine struct {
-	router *router // 路由
+	*RouterGroup
+	router *router        // 路由
+	groups []*RouterGroup // 路由组集合
 }
 
 var _ http.Handler = (*Engine)(nil)
 
 // Engine 构造函数
 func New() *Engine {
-	return &Engine{router: newRouter()}
+	engine := &Engine{router: newRouter()}
+	engine.RouterGroup = &RouterGroup{engine: engine}
+	engine.groups = []*RouterGroup{engine.RouterGroup}
+	return engine
+}
+
+// 路由分组
+func (group *RouterGroup) Group(prefix string) *RouterGroup {
+	engine := group.engine
+	newGroup := &RouterGroup{
+		prefix: group.prefix + prefix,
+		parent: group,
+		engine: engine,
+	}
+	engine.groups = append(engine.groups, newGroup)
+	return newGroup
 }
 
 // 注册路由
-func (engine *Engine) addRoute(method, pattern string, handler HandlerFunc) {
-	engine.router.addRoute(method, pattern, handler)
+func (group *RouterGroup) addRoute(method, comp string, handler HandlerFunc) {
+	pattern := group.prefix + comp
+	log.Printf("Route %4s - %s", method, pattern)
+	group.engine.router.addRoute(method, pattern, handler)
 }
 
 // 注册 GET 请求
-func (engine *Engine) GET(pattern string, handler HandlerFunc) {
-	engine.addRoute("GET", pattern, handler)
+func (group *RouterGroup) GET(pattern string, handler HandlerFunc) {
+	group.addRoute("GET", pattern, handler)
 }
 
 // 注册 POST 请求
-func (engine *Engine) POST(pattern string, handler HandlerFunc) {
-	engine.addRoute("POST", pattern, handler)
+func (group *RouterGroup) POST(pattern string, handler HandlerFunc) {
+	group.addRoute("POST", pattern, handler)
 }
 
 // 启动 http 服务
