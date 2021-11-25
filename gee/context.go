@@ -50,6 +50,7 @@ func (c *Context) Query(key string) string {
 
 // 设置响应状态码
 func (c *Context) Status(code int) {
+	c.StatusCode = code
 	c.W.WriteHeader(code)
 }
 

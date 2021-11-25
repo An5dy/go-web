@@ -34,6 +34,13 @@ func New() *Engine {
 	return engine
 }
 
+// 默认启动方式
+func Default() *Engine {
+	engine := New()
+	engine.Use(Logger(), Recovery())
+	return engine
+}
+
 // 路由分组
 func (group *RouterGroup) Group(prefix string) *RouterGroup {
 	engine := group.engine
