@@ -17,6 +17,8 @@ type Context struct {
 	Method     string              // 请求方法
 	Params     map[string]string   // 解析后的参数
 	StatusCode int                 // http 响应码
+	handlers   []HandlerFunc       // 中间件组
+	index      int                 // 执行到的中间件
 }
 
 // Context 构造函数
@@ -26,6 +28,7 @@ func newContext(w http.ResponseWriter, r *http.Request) *Context {
 		R:      r,
 		Path:   r.URL.Path,
 		Method: r.Method,
+		index:  -1,
 	}
 }
 
@@ -83,4 +86,19 @@ func (c *Context) HTML(code int, html string) {
 	c.SetHeader("Content-Type", "text/html")
 	c.Status(code)
 	c.W.Write([]byte(html))
+}
+
+// 处理下一步请求
+func (c *Context) Next() {
+	c.index++
+	s := len(c.handlers)
+	for ; c.index < s; c.index++ {
+		c.handlers[c.index](c)
+	}
+}
+
+// 输出错误
+func (c *Context) Fail(code int, err string) {
+	c.index = len(c.handlers)
+	c.JSON(code, H{"message": err})
 }
