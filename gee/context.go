@@ -15,6 +15,7 @@ type Context struct {
 	R          *http.Request       // 请求体
 	Path       string              // 请求路径
 	Method     string              // 请求方法
+	Params     map[string]string   // 解析后的参数
 	StatusCode int                 // http 响应码
 }
 
@@ -26,6 +27,12 @@ func newContext(w http.ResponseWriter, r *http.Request) *Context {
 		Path:   r.URL.Path,
 		Method: r.Method,
 	}
+}
+
+// 获取参数值
+func (c *Context) Param(key string) string {
+	value, _ := c.Params[key]
+	return value
 }
 
 // 获取 POST 请求数据
